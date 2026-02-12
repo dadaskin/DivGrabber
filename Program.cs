@@ -7,13 +7,19 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 Console.WriteLine("DivGrabber v0.1 - Copyright(c) 2026 David R. Adaskin, all rights reserved");
 
-Excel.Application _oXl;
-Excel._Workbook _oWb;
+try
+{
+    Excel.Application _oXl;
+    Excel._Workbook _oWb;
 
-List<StockInformation> mInvestments =  ReadSpreadsheet("FifthTestPortfolio.xls");
-DoWebRequestAndParse(mInvestments);
-UpdateSpreadsheet(mInvestments);
-
+    List<StockInformation> mInvestments = ReadSpreadsheet("FifthTestPortfolio.xls");
+    DoWebRequestAndParse(mInvestments);
+    UpdateSpreadsheet(mInvestments);
+} catch (Exception e)
+{
+    Console.WriteLine("*** Caught!");
+    Console.WriteLine(e.Message);
+}
 Console.WriteLine("DivGrabber done.  Review and then Save Spreadsheet manually");
 
 // End of Top-level Statements
@@ -28,14 +34,14 @@ List<StockInformation> ReadSpreadsheet(string ssName)
     try
     {
         // Open the spreadsheet
-         _oXl = new Excel.Application { Visible = true };
+         //_oXl = new Excel.Application { Visible = true };
         var z = Missing.Value;
-        _oWb = _oXl.Workbooks.Open(ssPathName, z, z, z, z, z, z, z, z, z, z, z, z, z, z);
+        //_oWb = _oXl.Workbooks.Open(ssPathName, z, z, z, z, z, z, z, z, z, z, z, z, z, z);
 
-        foreach (var obj in _oWb.Sheets)
-        {
-            ReadSymbolsFromSheet((Excel._Worksheet)obj);
-        }
+        //foreach (var obj in _oWb.Sheets)
+        //{
+        //    ReadSymbolsFromSheet((Excel._Worksheet)obj);
+        //}
     }
     catch (Exception err)
     {
@@ -49,10 +55,10 @@ List<StockInformation> ReadSpreadsheet(string ssName)
     return [issue1, issue2];
 }
 
-void ReadSymbolsFromSheet(Excel._Worksheet sheet)
-{
-    Console.WriteLine($"Reading from sheet: {sheet.Name}");
-}
+//void ReadSymbolsFromSheet(Excel._Worksheet sheet)
+//{
+//    Console.WriteLine($"Reading from sheet: {sheet.Name}");
+//}
 
 void DoWebRequestAndParse(List<StockInformation> mInvestments)
 {

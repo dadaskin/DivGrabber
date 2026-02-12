@@ -22,9 +22,9 @@ namespace QuoteGrabber5
             ParseAsFund = parseAsFund;
             SheetName = sheetName;
             RowStr = row;
-            PricePerShareStr = null;
-            AnnualDividend = null;
-            YearRange = null;
+            PricePerShareStr = "";
+            AnnualDividend = "";
+            YearRange = "";
         }
     }
 }
