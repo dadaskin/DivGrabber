@@ -1,128 +1,161 @@
-﻿using QuoteGrabber5;
+﻿using DivGrabber;
 using System.Globalization;
 using System.Reflection;
 using Excel = Microsoft.Office.Interop.Excel;
 
-#region  Top-level Statements 
-// See https://aka.ms/new-console-template for more information
-
-Console.WriteLine("DivGrabber v0.1 - Copyright(c) 2026 David R. Adaskin, all rights reserved");
-
-IList<StockInformation> _mInvestments = [];
-string _mDateString;
-int _mLastSymbolRow;
-
-// Excel Spreadsheet landmarks
-const string MSymbolColStr = "A";
-const string MPricePerShareCol = "C";
-const string MAnnualDividendCol = "N";
-const int MFirstSymbolRow = 5;
-const string MSymbolListTerminationString = "Cash";
-const string MTimeStampCell = "C1";
-
-Excel.Application _oXl;
-Excel._Workbook _oWb;
-
-ReadSpreadsheet("FifthTestPortfolio.xls");
-DisplayResults();
-
-
-DoWebRequestAndParse(_mInvestments);
-UpdateSpreadsheet(_mInvestments);
-
-Console.WriteLine("DivGrabber done.  Review and then Save Spreadsheet manually");
-
-#endregion End of Top-level Statements
-
-#region General Utils
-
-void DisplayResults()
+internal class Program
 {
-    foreach (var info in _mInvestments)
+    private readonly IList<StockInformation> _mInvestments = [];
+    int _mLastSymbolRow;
+
+    // Excel Spreadsheet landmarks
+    const int MFirstSymbolRow = 5;
+    const string MSymbolColStr = "A";
+    const string MNumSharesStr = "B";
+    const string MAcqDateColStr = "F";
+    const string MCumDivColStr = "I";
+    const string MSymbolListTerminationString = "Cash";
+
+    Excel.Application? _oXl;
+    Excel._Workbook? _oWb;
+
+    private static void Main(string[] args)
     {
-        Console.WriteLine($"{info.Symbol,-14} {info.SheetName,-15} {info.RowStr,4} {info.PricePerShareStr,8} {info.AnnualDividend,5} {info.YearRange}");
+        _ = new Program();
     }
-}
 
-#endregion General Utils
-
-#region Read Spreadsheet methods
-void ReadSpreadsheet(string ssName)
-{
-    var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-    var ssPathName = documentsFolder + @"\" + ssName;
-
-    Console.WriteLine($"---Reading the Spreadsheet: {ssPathName}");
-    try
+    public Program()
     {
-        // Open the spreadsheet
-        _oXl = new Excel.Application { Visible = true };
-        var z = Missing.Value;
-        _oWb = _oXl.Workbooks.Open(ssPathName, z, z, z, z, z, z, z, z, z, z, z, z, z, z);
+        Console.WriteLine("DivGrabber v0.1 - Copyright(c) 2026 David R. Adaskin, all rights reserved");
+        ReadSpreadsheet("SixthTestPortfolio.xls");
+        DisplayResults();
 
-        foreach (var obj in _oWb.Sheets)
-        {
-            ReadSymbolsFromSheet((Excel._Worksheet)obj);
-        }
-    } 
-    catch (Exception err)
-    { 
-        Console.WriteLine(err.ToString());
+        DoWebRequestAndParse(_mInvestments);
+        UpdateSpreadsheet(_mInvestments);
+
+        Console.WriteLine("DivGrabber done.  Review and then Save Spreadsheet manually");
     }
-}
 
-void ReadSymbolsFromSheet(Excel._Worksheet sheet)
-{
-    Console.WriteLine($"-Reading from sheet: {sheet.Name}");
-
-    var row = MFirstSymbolRow;
-
-    var symbol = string.Empty;
-    while (symbol != MSymbolListTerminationString)
+    #region General Utils
+    void DisplayResults()
     {
-        var cell = MSymbolColStr + row.ToString(CultureInfo.InvariantCulture);
-        var symbolRng = sheet.Range[cell, cell];
-        symbol = (string)symbolRng.Value2;
-
-        // Do we need to "clean" the symbols?
-
-        if ((symbol != null) && (symbol != MSymbolListTerminationString))
+        foreach (var info in _mInvestments)
         {
-            var parseAsFund = (symbol.EndsWith("X") &&
-                              (symbol != "CVX") &&
-                              (symbol != "FAX"));
-            var issue = new StockInformation(symbol, parseAsFund, sheet.Name, row.ToString(CultureInfo.InvariantCulture));
-
-            var alreadyInList = _mInvestments.Any(item => item.Symbol == issue.Symbol);
-            if (!alreadyInList)
-            {
-                _mInvestments.Add(issue);
+                string msg = $"{info.Symbol,-14} {info.BlockList.Count} blocks\n";
+                foreach (var block in info.BlockList)
+                {
+                    msg += $"    {block.SheetName,-15} {block.RowStr,4} {block.AcquistionDate.ToString("dd-MMM-yyyy")}  {block.NumShares}  {block.CumulativeDividend}\n";
+                }
+            Console.Write(msg);
             }
         }
-        else if ((symbol != null) && (symbol == MSymbolListTerminationString) && sheet.Name.Contains("Joint"))
-        {
-            _mLastSymbolRow = row - 1;
-        }
 
-        row++;
+    #endregion General Utils
+
+    #region Read Spreadsheet methods
+    void ReadSpreadsheet(string ssName)
+    {
+        var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var ssPathName = documentsFolder + @"\" + ssName;
+
+        Console.WriteLine($"---Reading the Spreadsheet: {ssPathName}");
+        try
+        {
+            // Open the spreadsheet
+            _oXl = new Excel.Application { Visible = true };
+            var z = Missing.Value;
+            _oWb = _oXl.Workbooks.Open(ssPathName, z, z, z, z, z, z, z, z, z, z, z, z, z, z);
+
+            foreach (var obj in _oWb.Sheets)
+            {
+                ReadSymbolsFromSheet((Excel._Worksheet)obj);
+            }
+        }
+        catch (Exception err)
+        {
+            Console.WriteLine(err.ToString());
+        }
+    }
+
+    void ReadSymbolsFromSheet(Excel._Worksheet sheet)
+    {
+        Console.WriteLine($"-Reading from sheet: {sheet.Name}");
+
+        var row = MFirstSymbolRow;
+
+        var symbol = string.Empty;
+        while (symbol != MSymbolListTerminationString)
+        {
+            // Read Symbol
+            var cell = MSymbolColStr + row.ToString(CultureInfo.InvariantCulture);
+            var symbolRng = sheet.Range[cell, cell];
+            symbol = (string)symbolRng.Value2;
+
+
+            if (symbol != null && symbol != MSymbolListTerminationString)
+            {
+                symbol = CleanSymbol(symbol);
+
+                //// Read Number of Shares
+                //cell = MNumSharesStr + row.ToString(CultureInfo.InvariantCulture);
+                //var numSharesRng = sheet.Range[cell, cell];
+                //var numShares = (float)numSharesRng.Value2;
+
+                //// Read Acquisition Date
+                //cell = MAcqDateColStr + row.ToString(CultureInfo.InvariantCulture);
+                //var acqDateRng = sheet.Range[cell, cell];
+                //var acqDate = (DateTime)acqDateRng.Value2;
+
+                var isFund = symbol.EndsWith("X") &&
+                        symbol != "CVX" &&
+                        symbol != "FAX";
+
+                //var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), acqDate, numShares);
+                var fakeDate = new DateTime(2026, 2, 11);
+                var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), fakeDate, 3.14159f);
+                var alreadyInList = _mInvestments.Any(item => item.Symbol == symbol);
+
+                if (alreadyInList)
+                {
+                    var issue = _mInvestments.First(a => a.Symbol == symbol);
+                    issue.BlockList.Add(block);
+                }
+                else
+                {
+                    var issue = new StockInformation(symbol, isFund, block);
+                    _mInvestments.Add(issue);
+                }
+            }
+            else if (symbol != null && symbol == MSymbolListTerminationString && sheet.Name.Contains("Joint"))
+            {
+                _mLastSymbolRow = row - 1;
+            }
+
+            row++;
+        }
+    }
+
+    static string CleanSymbol(string symbol )
+    {
+        // Remove any extra information from symbol string
+        var firstUnnecessaryCharacter = symbol.IndexOf(' ');
+        if (firstUnnecessaryCharacter > 0)
+            symbol = symbol.Remove(firstUnnecessaryCharacter);
+
+        return symbol;
+    }
+
+    #endregion Read Spreadsheet methods
+
+
+    void DoWebRequestAndParse(IList<StockInformation> mInvestments)
+    {
+        Console.WriteLine("---Doing Web Request TBD");
+    }
+
+    void UpdateSpreadsheet(IList<StockInformation> mInvestments)
+    {
+        Console.WriteLine("---Updating Spreadsheet TBD");
     }
 }
-
-#endregion Read Spreadsheet methods
-
-
-void DoWebRequestAndParse(IList<StockInformation> mInvestments)
-{
-    Console.WriteLine("---Doing Web Request TBD");
-}
-
-void UpdateSpreadsheet(IList<StockInformation> mInvestments)
-{
-    Console.WriteLine("---Updating Spreadsheet TBD");
-}
-
-
-
-
-
 
