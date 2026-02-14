@@ -111,14 +111,12 @@ internal class Program
                 var numSharesRng = sheet.Range[cell, cell];
                 var numShares = (float)numSharesRng.Value2;
 
-                //// Read Acquisition Date
-                //cell = MAcqDateColStr + row.ToString(CultureInfo.InvariantCulture);
-                //var acqDateRng = sheet.Range[cell, cell];
-                //var acqDate = (DateTime)acqDateRng.Value2;
+                // Read Acquisition Date
+                cell = MAcqDateColStr + row.ToString(CultureInfo.InvariantCulture);
+                var acqDateRng = sheet.Range[cell, cell];
+                var acqDate = DateTime.FromOADate(acqDateRng.Value2);
 
-                //var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), acqDate, numShares);
-                var fakeDate = new DateTime(2026, 2, 11);
-                var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), fakeDate, numShares);
+                var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), acqDate, numShares);
                 var alreadyInList = _mInvestments.Any(item => item.Symbol == symbol);
 
                 if (alreadyInList)
