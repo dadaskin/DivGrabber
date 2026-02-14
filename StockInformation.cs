@@ -3,11 +3,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace DivGrabber
 {
-    public class StockInformation(string symbol, bool isFundOrETF, Block firstBlock)
+    public class StockInformation(string symbol, Block firstBlock)
     {
         public string Symbol { get; private set; } = symbol;
-        public bool IsMutualFundOrETF { get; private set; } = isFundOrETF;
-
         public string HtmlDivHistory { get; set; } = "";
         public List<Block> BlockList { get; set; } = [firstBlock];
     }

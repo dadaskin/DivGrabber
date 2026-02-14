@@ -41,10 +41,10 @@ internal class Program
     {
         foreach (var info in _mInvestments)
         {
-                string msg = $"{info.Symbol,-14} {info.BlockList.Count} blocks\n";
+                string msg = $"{info.Symbol,-14} {info.BlockList.Count} block(s)\n";
                 foreach (var block in info.BlockList)
                 {
-                    msg += $"    {block.SheetName,-15} {block.RowStr,4} {block.AcquistionDate.ToString("dd-MMM-yyyy")}  {block.NumShares}  {block.CumulativeDividend}\n";
+                    msg += $"    {block.SheetName,-15} {block.RowStr,4} {block.AcquistionDate.ToString("dd-MMM-yyyy")}  {block.NumShares, 6} --- /* {block.CumulativeDividend}*/\n";
                 }
             Console.Write(msg);
             }
@@ -96,23 +96,29 @@ internal class Program
             {
                 symbol = CleanSymbol(symbol);
 
-                //// Read Number of Shares
-                //cell = MNumSharesStr + row.ToString(CultureInfo.InvariantCulture);
-                //var numSharesRng = sheet.Range[cell, cell];
-                //var numShares = (float)numSharesRng.Value2;
+                var isFundOrETF = symbol.EndsWith("X") &&
+                        symbol != "CVX" &&
+                        symbol != "FAX";
+
+                if (isFundOrETF)
+                {
+                    row++;
+                    continue;
+                }
+
+                // Read Number of Shares
+                cell = MNumSharesStr + row.ToString(CultureInfo.InvariantCulture);
+                var numSharesRng = sheet.Range[cell, cell];
+                var numShares = (float)numSharesRng.Value2;
 
                 //// Read Acquisition Date
                 //cell = MAcqDateColStr + row.ToString(CultureInfo.InvariantCulture);
                 //var acqDateRng = sheet.Range[cell, cell];
                 //var acqDate = (DateTime)acqDateRng.Value2;
 
-                var isFund = symbol.EndsWith("X") &&
-                        symbol != "CVX" &&
-                        symbol != "FAX";
-
                 //var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), acqDate, numShares);
                 var fakeDate = new DateTime(2026, 2, 11);
-                var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), fakeDate, 3.14159f);
+                var block = new Block(sheet.Name, row.ToString(CultureInfo.InvariantCulture), fakeDate, numShares);
                 var alreadyInList = _mInvestments.Any(item => item.Symbol == symbol);
 
                 if (alreadyInList)
@@ -122,7 +128,7 @@ internal class Program
                 }
                 else
                 {
-                    var issue = new StockInformation(symbol, isFund, block);
+                    var issue = new StockInformation(symbol, block);
                     _mInvestments.Add(issue);
                 }
             }
