@@ -6,7 +6,6 @@ using Excel = Microsoft.Office.Interop.Excel;
 internal class Program
 {
     private readonly IList<StockInformation> _mInvestments = [];
-    int _mLastSymbolRow;
 
     // Excel Spreadsheet landmarks
     const int MFirstSymbolRow = 5;
@@ -27,11 +26,11 @@ internal class Program
     public Program()
     {
         Console.WriteLine("DivGrabber v0.1 - Copyright(c) 2026 David R. Adaskin, all rights reserved");
-        ReadSpreadsheet("SixthTestPortfolio.xls");
+        ReadSpreadsheet("FifthTestPortfolio.xls");
         DisplayResults();
 
         DoWebRequestAndParse(_mInvestments);
-        UpdateSpreadsheet(_mInvestments);
+     //   UpdateSpreadsheet(_mInvestments);
 
         Console.WriteLine("DivGrabber done.  Review and then Save Spreadsheet manually");
     }
@@ -96,11 +95,14 @@ internal class Program
             {
                 symbol = CleanSymbol(symbol);
 
-                var isFundOrETF = symbol.EndsWith("X") &&
-                        symbol != "CVX" &&
-                        symbol != "FAX";
+                var hasNoDividend = (symbol.EndsWith("X") && symbol != "CVX" && symbol != "FAX")||
+                                    (symbol == "AMZN") ||
+                                    (symbol == "BRKB") ||
+                                    (symbol == "QYLD") ||
+                                    (symbol == "GLD") ||
+                                    (symbol.Length == 9);
 
-                if (isFundOrETF)
+                if (hasNoDividend)
                 {
                     row++;
                     continue;
@@ -130,11 +132,6 @@ internal class Program
                     _mInvestments.Add(issue);
                 }
             }
-            else if (symbol != null && symbol == MSymbolListTerminationString && sheet.Name.Contains("Joint"))
-            {
-                _mLastSymbolRow = row - 1;
-            }
-
             row++;
         }
     }
