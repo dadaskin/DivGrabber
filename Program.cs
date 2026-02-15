@@ -149,12 +149,32 @@ internal class Program
     #endregion Read Spreadsheet methods
 
 
-    void DoWebRequestAndParse(IList<StockInformation> mInvestments)
+    void DoWebRequestAndParse(IList<StockInformation> issueList)
     {
         Console.WriteLine("---Doing Web Request TBD");
+
+        // Web request format: 
+        // https://finance.yahoo.com/quote/{symbol}/history/?filter=div&period1={acqDate as UTC Date}&period2={Now as UTC Date}
+        foreach (var issue in issueList)
+        {
+            if (issue.Symbol == "BP")
+            {
+                // Block 1 acquired on 19-Nov-21: Ticks: Ticks = 637728768000000000   Yahoo Finance: 1637280000   14-Feb--26 = 1771131783
+                // Block 2 acquited on 29-Nov-21
+                foreach (var block in issue.BlockList)
+                {
+                    var startDateUTC = new DateTimeOffset(block.AcquistionDate.ToUniversalTime()).ToUnixTimeSeconds();
+                    var stopDateUTC = new DateTimeOffset(DateTime.Now.ToUniversalTime()).ToUnixTimeSeconds();
+                    var reqString = $@"https://finance.yahoo.com/quote/{issue.Symbol}/history/?filter=div&period1={startDateUTC}&period2={stopDateUTC}";
+
+                    // Now send the reqString and get the response.  Then parse the response to get each div payment.  Then sum them.
+                }
+            }
+        }
+
     }
 
-    void UpdateSpreadsheet(IList<StockInformation> mInvestments)
+    void UpdateSpreadsheet(IList<StockInformation> issueList)
     {
         Console.WriteLine("---Updating Spreadsheet TBD");
     }
